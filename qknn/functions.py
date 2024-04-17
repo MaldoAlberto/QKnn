@@ -2,9 +2,10 @@
 Various functions needed to implement the Q-kNN.
 """
 import math
-from qiskit import QuantumCircuit,QuantumRegister,ClassicalRegister #, transpile
-from qiskit.circuit.library import CRYGate
-from qiskit.circuit import ControlledGate
+from qiskit import QuantumCircuit,QuantumRegister,ClassicalRegister, transpile
+from qiskit_aer import AerSimulator
+from qiskit.circuit import CircuitInstruction, Instruction
+from qiskit.circuit.library.standard_gates import CRYGate,RYGate,RZGate
 # TODO: enforce PEP-8 style, naming conventions, imports, etc.
 
 
@@ -28,7 +29,6 @@ def index_positions(value:int = 0):
         if v == '1':
             list_bin.append(i)
     return list_bin
-
 
 def diffuser(nqubits:int = 2):
     """
@@ -54,16 +54,16 @@ def diffuser(nqubits:int = 2):
     for qubit in range(nqubits):
         qc.h(qubit)
     # Return the diffuser as a gate
-    u_s = qc.to_gate()
-    u_s.name = "$U_s$"
-    return u_s
+    u_gate = qc.to_gate()
+    u_gate.name = "$diffuser$"
+    return u_gate
 
 
 def qram(
         size_QRAM:int = 1,
         features:int = 1,
         train_set:list = [],
-        controlled_rotation:ControlledGate = CRYGate
+        gate:Instruction = RYGate
     ):  # pylint: disable=invalid-name,dangerous-default-value
     """
     Build a QRAM with CRY or H-CRZ gates.
@@ -95,10 +95,7 @@ def qram(
         qc.mcx(address,ancilla)
         angles = train_set[i]
         for index, value in enumerate(angles):
-            #qc.cry(value, ancilla, data[index])
-            # try to pass the gate as an argument...
-            rotation = controlled_rotation(value, ancilla, data[index])
-            qc.append(rotation, address)
+            qc._append(CircuitInstruction(gate(value).control(),[ancilla[0],data[index]]))
         qc.mcx(address,ancilla)
         if x_gates_array:
             qc.x(address[x_gates_array])
@@ -114,7 +111,7 @@ def qram(
 #    # TODO: explain args, add type signatures... well, or get rid of this function in notebooks
 #    return qram(qc, address, ancilla, data, train_set, len_arr, dagger=True)
 
-def oracle_st(features:int, test_value:list):
+def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
     """
     Build a Oracle using SWAP-Test.
 
@@ -134,8 +131,12 @@ def oracle_st(features:int, test_value:list):
     qc = QuantumCircuit(data_train,data_test,swap_test,oracle,c_oracle)
 
     qc.h(swap_test)
+
+    #if gate == RZGate: 
+    #    qc.h(data_test)
+    
     for i in range(features):
-        qc.ry(test_value[i],data_test[i])
+        qc._append(CircuitInstruction(gate(test_value[i]),[data_test[i]]))
         qc.cswap(swap_test,data_train[i],data_test[i])
     qc.h(swap_test)
     qc.barrier()
@@ -146,8 +147,11 @@ def oracle_st(features:int, test_value:list):
 
 
     for i in range(features):
-        qc.ry(-test_value[i],data_test[i])
+        qc._append(CircuitInstruction(gate(-test_value[i]),[data_test[i]]))
     qc.barrier()
+
+    #if gate == RZGate: 
+    #    qc.h(data_test)
 
     return qc
 
@@ -157,7 +161,8 @@ def qknn(
         train_set:list,
         size_QRAM:int,
         features:int,
-        max_trials:int=1
+        max_trials:int=1,
+        rotation:str="ry" 
     ):  # pylint: disable=invalid-name
     """
     Build a QKNN.
@@ -174,7 +179,7 @@ def qknn(
         qiskit.circuit.quantumcircuit.QuantumCircuit: a QKNN circuit for a comparition of
         a particular test set instance with a sample or all the train set
     """
-    # TODO: add a flag to choose rotatio gates
+    # TODO: add a flag to choose rotation gates
     # TODO: remove unused arguments
     # TODO: fix for "arbitrary" (somewhat) input data - at least remove as much hardcoding as possible
     n = 2**size_QRAM
@@ -182,6 +187,11 @@ def qknn(
     if max_trials:
         n_grover_trials = min(max_trials, n_grover_trials)
 
+
+    rotation_gates = {"ry": RYGate, "rz": RZGate}
+
+
+    gate = rotation_gates[rotation]
 
     address = QuantumRegister(size_QRAM,name = "address qubits")
     ancilla = QuantumRegister(1,name = "ancilla qubits")
@@ -197,20 +207,32 @@ def qknn(
     qc.x(oracle)
     qc.h(oracle)
 
+
+
     qc.barrier()
 
     for _ in range(n_grover_trials):
-        qc.append(qram(size_QRAM,features,train_set),
+
+        if gate == RZGate: 
+            qc.h(data_train)
+            qc.h(data_test)
+        qc.append(qram(size_QRAM,features,train_set,gate),
                   address[:] + ancilla[:] + data_train[:])
-        qc.append(oracle_st(features,test_value),
+        qc.append(oracle_st(features,test_value,gate),
                   data_train[:] + data_test[:] + swap_test[:] + oracle[:],
                   c_oracle[:])
-        qc.append(qram(size_QRAM,features,train_set).inverse(),
+        qc.append(qram(size_QRAM,features,train_set,gate).inverse(),
                   address[:] + ancilla[:] + data_train[:])
         qc.append(diffuser(size_QRAM),address)
         qc.barrier()
+
+
+        if gate == RZGate: 
+            qc.h(data_train)
+            qc.h(data_test)
 
     qc.x(address)
     qc.measure(address,c)
 
     return qc
+
