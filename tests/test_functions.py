@@ -37,11 +37,17 @@ class TestFunctions(unittest.TestCase): # pylint: disable=too-many-instance-attr
         # TODO: test CRY, CRZ, what the circuit does...
         empty_qram = qram(size_QRAM=1, features=0)
         self.assertEqual(type(empty_qram), qiskit.circuit.quantumcircuit.QuantumCircuit)
+        empty_cry_qram = qram(size_QRAM=1, features=0, train_set=[], controlled_rotation=CRYGate)
+        self.assertEqual(type(empty_cry_qram), qiskit.circuit.quantumcircuit.QuantumCircuit)
         empty_crz_qram = qram(size_QRAM=1, features=0, train_set=[], controlled_rotation=CRZGate)
         self.assertEqual(type(empty_crz_qram), qiskit.circuit.quantumcircuit.QuantumCircuit)
 
     def test_oracle_st(self):
         """Test `oracle_st()`"""
+        pass
+
+    def test_qknn(self):
+        """Test `qknn()`"""
         pass
 
 
