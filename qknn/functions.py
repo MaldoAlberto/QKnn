@@ -200,9 +200,13 @@ def qknn(
     qc.barrier()
 
     for _ in range(n_grover_trials):
-        qc.append(qram(size_QRAM,features,train_set),address[:] + ancilla[:] + data_train[:])
-        qc.append(oracle_st(features,test_value), data_train[:] + data_test[:] + swap_test[:] + oracle[:], c_oracle[:])
-        qc.append(qram(size_QRAM,features,train_set).inverse(),address[:] + ancilla[:] + data_train[:])
+        qc.append(qram(size_QRAM,features,train_set),
+                  address[:] + ancilla[:] + data_train[:])
+        qc.append(oracle_st(features,test_value),
+                  data_train[:] + data_test[:] + swap_test[:] + oracle[:],
+                  c_oracle[:])
+        qc.append(qram(size_QRAM,features,train_set).inverse(),
+                  address[:] + ancilla[:] + data_train[:])
         qc.append(diffuser(size_QRAM),address)
         qc.barrier()
 
