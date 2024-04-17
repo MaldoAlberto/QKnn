@@ -174,11 +174,10 @@ def qknn(
         qiskit.circuit.quantumcircuit.QuantumCircuit: a QKNN circuit for a comparition of
         a particular test set instance with a sample or all the train set
     """
-    # TODO: explain args, add type signatures
     # TODO: add a flag to choose rotatio gates
     # TODO: remove unused arguments
     # TODO: fix for "arbitrary" (somewhat) input data - at least remove as much hardcoding as possible
-    n = (2**size_QRAM)
+    n = 2**size_QRAM
     n_grover_trials = math.ceil(math.sqrt(n))
     if max_trials:
         n_grover_trials = min(max_trials, n_grover_trials)
@@ -201,9 +200,13 @@ def qknn(
     qc.barrier()
 
     for _ in range(n_grover_trials):
-        qc.append(qram(size_QRAM,features,train_set),address[:] + ancilla[:] + data_train[:])
-        qc.append(oracle_st(features,test_value), data_train[:] + data_test[:] + swap_test[:] + oracle[:], c_oracle[:])
-        qc.append(qram(size_QRAM,features,train_set).inverse(),address[:] + ancilla[:] + data_train[:])
+        qc.append(qram(size_QRAM,features,train_set),
+                  address[:] + ancilla[:] + data_train[:])
+        qc.append(oracle_st(features,test_value),
+                  data_train[:] + data_test[:] + swap_test[:] + oracle[:],
+                  c_oracle[:])
+        qc.append(qram(size_QRAM,features,train_set).inverse(),
+                  address[:] + ancilla[:] + data_train[:])
         qc.append(diffuser(size_QRAM),address)
         qc.barrier()
 
