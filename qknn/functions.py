@@ -95,7 +95,9 @@ def qram(
         qc.mcx(address,ancilla)
         angles = train_set[i]
         for index, value in enumerate(angles):
-            qc._append(CircuitInstruction(gate(value).control(),[ancilla[0],data[index]])) # pylint: disable=protected-access
+            qc._append(   # pylint: disable=protected-access
+                CircuitInstruction(gate(value).control(), [ancilla[0], data[index]])
+            )
         qc.mcx(address,ancilla)
         if x_gates_array:
             qc.x(address[x_gates_array])
@@ -104,7 +106,7 @@ def qram(
     return qc
 
 
-def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
+def oracle_st(features:int, test_value:list, gate:Instruction=RYGate):
     """
     Build a Oracle using SWAP-Test.
 
@@ -126,7 +128,9 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
     qc.h(swap_test)
 
     for i in range(features):
-        qc._append(CircuitInstruction(gate(test_value[i]),[data_test[i]])) # pylint: disable=protected-access
+        qc._append(  # pylint: disable=protected-access
+            CircuitInstruction(gate(test_value[i]), [data_test[i]])
+        )
         qc.cswap(swap_test,data_train[i],data_test[i])
     qc.h(swap_test)
     qc.barrier()
@@ -136,7 +140,9 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
     qc.barrier()
 
     for i in range(features):
-        qc._append(CircuitInstruction(gate(-test_value[i]),[data_test[i]])) # pylint: disable=protected-access
+        qc._append(  # pylint: disable=protected-access
+            CircuitInstruction(gate(-test_value[i]), [data_test[i]])
+        )
     qc.barrier()
 
     return qc
@@ -173,15 +179,15 @@ def qknn(
     rotation_gates = {"ry": RYGate, "rz": RZGate}
     gate = rotation_gates[rotation]
 
-    address = QuantumRegister(size_QRAM,name = "address qubits")
-    ancilla = QuantumRegister(1,name = "ancilla qubits")
-    data_train = QuantumRegister(features,name = "train data qubits")
-    data_test = QuantumRegister(features,name = "test data qubits")
-    swap_test = QuantumRegister(1,name = "SWAP-Test qubit")
-    oracle = QuantumRegister(1,name = "Oracle qubit")
-    c = ClassicalRegister(size_QRAM,name = "address bits")
-    c_oracle = ClassicalRegister(1,name = "oracle bit")
-    qc = QuantumCircuit(address, ancilla, data_train, data_test, swap_test,oracle, c,c_oracle)
+    address = QuantumRegister(size_QRAM, name = "address qubits")
+    ancilla = QuantumRegister(1, name = "ancilla qubits")
+    data_train = QuantumRegister(features, name = "train data qubits")
+    data_test = QuantumRegister(features, name = "test data qubits")
+    swap_test = QuantumRegister(1, name = "SWAP-Test qubit")
+    oracle = QuantumRegister(1, name = "Oracle qubit")
+    c = ClassicalRegister(size_QRAM, name = "address bits")
+    c_oracle = ClassicalRegister(1, name = "oracle bit")
+    qc = QuantumCircuit(address, ancilla, data_train, data_test, swap_test,oracle, c, c_oracle)
 
     qc.h(address)
     qc.x(oracle)
@@ -193,12 +199,12 @@ def qknn(
         if gate == RZGate:
             qc.h(data_train)
             qc.h(data_test)
-        qc.append(qram(size_QRAM,features,train_set,gate),
+        qc.append(qram(size_QRAM, features, train_set, gate),
                   address[:] + ancilla[:] + data_train[:])
         qc.append(oracle_st(features,test_value,gate),
                   data_train[:] + data_test[:] + swap_test[:] + oracle[:],
                   c_oracle[:])
-        qc.append(qram(size_QRAM,features,train_set,gate).inverse(),
+        qc.append(qram(size_QRAM, features, train_set, gate).inverse(),
                   address[:] + ancilla[:] + data_train[:])
         qc.append(diffuser(size_QRAM),address)
         qc.barrier()
@@ -207,6 +213,6 @@ def qknn(
             qc.h(data_test)
 
     qc.x(address)
-    qc.measure(address,c)
+    qc.measure(address, c)
 
     return qc
