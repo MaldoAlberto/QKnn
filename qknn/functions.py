@@ -2,11 +2,9 @@
 Various functions needed to implement the Q-kNN.
 """
 import math
-from qiskit import QuantumCircuit,QuantumRegister,ClassicalRegister, transpile
-from qiskit_aer import AerSimulator
+from qiskit import QuantumCircuit,QuantumRegister,ClassicalRegister
 from qiskit.circuit import CircuitInstruction, Instruction
-from qiskit.circuit.library.standard_gates import CRYGate,RYGate,RZGate
-# TODO: enforce PEP-8 style, naming conventions, imports, etc.
+from qiskit.circuit.library.standard_gates import RYGate,RZGate
 
 
 def index_positions(value:int = 0):
@@ -132,9 +130,9 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
 
     qc.h(swap_test)
 
-    #if gate == RZGate: 
+    #if gate == RZGate:
     #    qc.h(data_test)
-    
+
     for i in range(features):
         qc._append(CircuitInstruction(gate(test_value[i]),[data_test[i]]))
         qc.cswap(swap_test,data_train[i],data_test[i])
@@ -150,7 +148,7 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
         qc._append(CircuitInstruction(gate(-test_value[i]),[data_test[i]]))
     qc.barrier()
 
-    #if gate == RZGate: 
+    #if gate == RZGate:
     #    qc.h(data_test)
 
     return qc
@@ -162,7 +160,7 @@ def qknn(
         size_QRAM:int,
         features:int,
         max_trials:int=1,
-        rotation:str="ry" 
+        rotation:str="ry"
     ):  # pylint: disable=invalid-name
     """
     Build a QKNN.
@@ -213,7 +211,7 @@ def qknn(
 
     for _ in range(n_grover_trials):
 
-        if gate == RZGate: 
+        if gate == RZGate:
             qc.h(data_train)
             qc.h(data_test)
         qc.append(qram(size_QRAM,features,train_set,gate),
@@ -227,7 +225,7 @@ def qknn(
         qc.barrier()
 
 
-        if gate == RZGate: 
+        if gate == RZGate:
             qc.h(data_train)
             qc.h(data_test)
 
