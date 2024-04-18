@@ -6,7 +6,7 @@ import unittest
 import sys
 import logging
 import qiskit.circuit
-from qiskit.circuit.library import CRYGate, CRZGate
+from qiskit.circuit.library import RYGate, RZGate
 from qknn.functions import index_positions, diffuser, qram
 
 LOGGER = logging.getLogger(__name__)
@@ -37,9 +37,9 @@ class TestFunctions(unittest.TestCase): # pylint: disable=too-many-instance-attr
         # TODO: test CRY, CRZ, what the circuit does...
         empty_qram = qram(size_QRAM=1, features=0)
         self.assertEqual(type(empty_qram), qiskit.circuit.quantumcircuit.QuantumCircuit)
-        empty_cry_qram = qram(size_QRAM=1, features=0, train_set=[], gate=CRYGate)
+        empty_cry_qram = qram(size_QRAM=1, features=0, train_set=[], gate=RYGate)
         self.assertEqual(type(empty_cry_qram), qiskit.circuit.quantumcircuit.QuantumCircuit)
-        empty_crz_qram = qram(size_QRAM=1, features=0, train_set=[], gate=CRZGate)
+        empty_crz_qram = qram(size_QRAM=1, features=0, train_set=[], gate=RZGate)
         self.assertEqual(type(empty_crz_qram), qiskit.circuit.quantumcircuit.QuantumCircuit)
 
     def test_oracle_st(self):
