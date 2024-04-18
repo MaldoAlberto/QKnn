@@ -18,7 +18,8 @@ def index_positions(value:int = 0):
         value: integer value that we transform in binary number that representate in a list position
 
     Returns:
-        list: a integer list of position that representate the index position of ones in a binary number
+        list: a integer list of position that representate the index position of ones in a binary
+        number
     """
     list_bin = []
     temp = bin(value)[2:]
@@ -27,6 +28,7 @@ def index_positions(value:int = 0):
         if v == '1':
             list_bin.append(i)
     return list_bin
+
 
 def diffuser(nqubits:int = 2):
     """
@@ -93,7 +95,7 @@ def qram(
         qc.mcx(address,ancilla)
         angles = train_set[i]
         for index, value in enumerate(angles):
-            qc._append(CircuitInstruction(gate(value).control(),[ancilla[0],data[index]]))
+            qc._append(CircuitInstruction(gate(value).control(),[ancilla[0],data[index]])) # pylint: disable=protected-access
         qc.mcx(address,ancilla)
         if x_gates_array:
             qc.x(address[x_gates_array])
@@ -101,13 +103,6 @@ def qram(
 
     return qc
 
-
-#def qram_d(qc, address, ancilla, data, train_set, len_arr):
-#    """
-#    Run the `qram` function with a different default (placeholder).
-#    """
-#    # TODO: explain args, add type signatures... well, or get rid of this function in notebooks
-#    return qram(qc, address, ancilla, data, train_set, len_arr, dagger=True)
 
 def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
     """
@@ -130,11 +125,8 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
 
     qc.h(swap_test)
 
-    #if gate == RZGate:
-    #    qc.h(data_test)
-
     for i in range(features):
-        qc._append(CircuitInstruction(gate(test_value[i]),[data_test[i]]))
+        qc._append(CircuitInstruction(gate(test_value[i]),[data_test[i]])) # pylint: disable=protected-access
         qc.cswap(swap_test,data_train[i],data_test[i])
     qc.h(swap_test)
     qc.barrier()
@@ -143,13 +135,9 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
     qc.x(oracle).c_if(c_oracle[0], 0)
     qc.barrier()
 
-
     for i in range(features):
-        qc._append(CircuitInstruction(gate(-test_value[i]),[data_test[i]]))
+        qc._append(CircuitInstruction(gate(-test_value[i]),[data_test[i]])) # pylint: disable=protected-access
     qc.barrier()
-
-    #if gate == RZGate:
-    #    qc.h(data_test)
 
     return qc
 
@@ -177,18 +165,12 @@ def qknn(
         qiskit.circuit.quantumcircuit.QuantumCircuit: a QKNN circuit for a comparition of
         a particular test set instance with a sample or all the train set
     """
-    # TODO: add a flag to choose rotation gates
-    # TODO: remove unused arguments
-    # TODO: fix for "arbitrary" (somewhat) input data - at least remove as much hardcoding as possible
     n = 2**size_QRAM
     n_grover_trials = math.ceil(math.sqrt(n))
     if max_trials:
         n_grover_trials = min(max_trials, n_grover_trials)
 
-
     rotation_gates = {"ry": RYGate, "rz": RZGate}
-
-
     gate = rotation_gates[rotation]
 
     address = QuantumRegister(size_QRAM,name = "address qubits")
@@ -205,12 +187,9 @@ def qknn(
     qc.x(oracle)
     qc.h(oracle)
 
-
-
     qc.barrier()
 
     for _ in range(n_grover_trials):
-
         if gate == RZGate:
             qc.h(data_train)
             qc.h(data_test)
@@ -223,8 +202,6 @@ def qknn(
                   address[:] + ancilla[:] + data_train[:])
         qc.append(diffuser(size_QRAM),address)
         qc.barrier()
-
-
         if gate == RZGate:
             qc.h(data_train)
             qc.h(data_test)
@@ -233,4 +210,3 @@ def qknn(
     qc.measure(address,c)
 
     return qc
-
