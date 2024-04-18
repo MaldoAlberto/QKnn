@@ -2,11 +2,9 @@
 Various functions needed to implement the Q-kNN.
 """
 import math
-from qiskit import QuantumCircuit,QuantumRegister,ClassicalRegister, transpile
-from qiskit_aer import AerSimulator
+from qiskit import QuantumCircuit,QuantumRegister,ClassicalRegister
 from qiskit.circuit import CircuitInstruction, Instruction
-from qiskit.circuit.library.standard_gates import CRYGate,RYGate,RZGate
-# TODO: enforce PEP-8 style, naming conventions, imports, etc.
+from qiskit.circuit.library.standard_gates import RYGate,RZGate
 
 
 def index_positions(value:int = 0):
@@ -20,7 +18,8 @@ def index_positions(value:int = 0):
         value: integer value that we transform in binary number that representate in a list position
 
     Returns:
-        list: a integer list of position that representate the index position of ones in a binary number
+        list: a integer list of position that representate the index position of ones in a binary
+        number
     """
     list_bin = []
     temp = bin(value)[2:]
@@ -29,6 +28,7 @@ def index_positions(value:int = 0):
         if v == '1':
             list_bin.append(i)
     return list_bin
+
 
 def diffuser(nqubits:int = 2):
     """
@@ -95,7 +95,9 @@ def qram(
         qc.mcx(address,ancilla)
         angles = train_set[i]
         for index, value in enumerate(angles):
-            qc._append(CircuitInstruction(gate(value).control(),[ancilla[0],data[index]]))
+            qc._append(   # pylint: disable=protected-access
+                CircuitInstruction(gate(value).control(), [ancilla[0], data[index]])
+            )
         qc.mcx(address,ancilla)
         if x_gates_array:
             qc.x(address[x_gates_array])
@@ -104,14 +106,7 @@ def qram(
     return qc
 
 
-#def qram_d(qc, address, ancilla, data, train_set, len_arr):
-#    """
-#    Run the `qram` function with a different default (placeholder).
-#    """
-#    # TODO: explain args, add type signatures... well, or get rid of this function in notebooks
-#    return qram(qc, address, ancilla, data, train_set, len_arr, dagger=True)
-
-def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
+def oracle_st(features:int, test_value:list, gate:Instruction=RYGate):
     """
     Build a Oracle using SWAP-Test.
 
@@ -132,11 +127,10 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
 
     qc.h(swap_test)
 
-    #if gate == RZGate: 
-    #    qc.h(data_test)
-    
     for i in range(features):
-        qc._append(CircuitInstruction(gate(test_value[i]),[data_test[i]]))
+        qc._append(  # pylint: disable=protected-access
+            CircuitInstruction(gate(test_value[i]), [data_test[i]])
+        )
         qc.cswap(swap_test,data_train[i],data_test[i])
     qc.h(swap_test)
     qc.barrier()
@@ -145,13 +139,11 @@ def oracle_st(features:int, test_value:list,gate:Instruction=RYGate):
     qc.x(oracle).c_if(c_oracle[0], 0)
     qc.barrier()
 
-
     for i in range(features):
-        qc._append(CircuitInstruction(gate(-test_value[i]),[data_test[i]]))
+        qc._append(  # pylint: disable=protected-access
+            CircuitInstruction(gate(-test_value[i]), [data_test[i]])
+        )
     qc.barrier()
-
-    #if gate == RZGate: 
-    #    qc.h(data_test)
 
     return qc
 
@@ -162,7 +154,7 @@ def qknn(
         size_QRAM:int,
         features:int,
         max_trials:int=1,
-        rotation:str="ry" 
+        rotation:str="ry"
     ):  # pylint: disable=invalid-name
     """
     Build a QKNN.
@@ -179,60 +171,48 @@ def qknn(
         qiskit.circuit.quantumcircuit.QuantumCircuit: a QKNN circuit for a comparition of
         a particular test set instance with a sample or all the train set
     """
-    # TODO: add a flag to choose rotation gates
-    # TODO: remove unused arguments
-    # TODO: fix for "arbitrary" (somewhat) input data - at least remove as much hardcoding as possible
     n = 2**size_QRAM
     n_grover_trials = math.ceil(math.sqrt(n))
     if max_trials:
         n_grover_trials = min(max_trials, n_grover_trials)
 
-
     rotation_gates = {"ry": RYGate, "rz": RZGate}
-
-
     gate = rotation_gates[rotation]
 
-    address = QuantumRegister(size_QRAM,name = "address qubits")
-    ancilla = QuantumRegister(1,name = "ancilla qubits")
-    data_train = QuantumRegister(features,name = "train data qubits")
-    data_test = QuantumRegister(features,name = "test data qubits")
-    swap_test = QuantumRegister(1,name = "SWAP-Test qubit")
-    oracle = QuantumRegister(1,name = "Oracle qubit")
-    c = ClassicalRegister(size_QRAM,name = "address bits")
-    c_oracle = ClassicalRegister(1,name = "oracle bit")
-    qc = QuantumCircuit(address, ancilla, data_train, data_test, swap_test,oracle, c,c_oracle)
+    address = QuantumRegister(size_QRAM, name = "address qubits")
+    ancilla = QuantumRegister(1, name = "ancilla qubits")
+    data_train = QuantumRegister(features, name = "train data qubits")
+    data_test = QuantumRegister(features, name = "test data qubits")
+    swap_test = QuantumRegister(1, name = "SWAP-Test qubit")
+    oracle = QuantumRegister(1, name = "Oracle qubit")
+    c = ClassicalRegister(size_QRAM, name = "address bits")
+    c_oracle = ClassicalRegister(1, name = "oracle bit")
+    qc = QuantumCircuit(address, ancilla, data_train, data_test, swap_test,oracle, c, c_oracle)
 
     qc.h(address)
     qc.x(oracle)
     qc.h(oracle)
 
-
-
     qc.barrier()
 
     for _ in range(n_grover_trials):
-
-        if gate == RZGate: 
+        if gate == RZGate:
             qc.h(data_train)
             qc.h(data_test)
-        qc.append(qram(size_QRAM,features,train_set,gate),
+        qc.append(qram(size_QRAM, features, train_set, gate),
                   address[:] + ancilla[:] + data_train[:])
         qc.append(oracle_st(features,test_value,gate),
                   data_train[:] + data_test[:] + swap_test[:] + oracle[:],
                   c_oracle[:])
-        qc.append(qram(size_QRAM,features,train_set,gate).inverse(),
+        qc.append(qram(size_QRAM, features, train_set, gate).inverse(),
                   address[:] + ancilla[:] + data_train[:])
         qc.append(diffuser(size_QRAM),address)
         qc.barrier()
-
-
-        if gate == RZGate: 
+        if gate == RZGate:
             qc.h(data_train)
             qc.h(data_test)
 
     qc.x(address)
-    qc.measure(address,c)
+    qc.measure(address, c)
 
     return qc
-
