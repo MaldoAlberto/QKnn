@@ -111,7 +111,7 @@ def qram(
     return qc
 
 
-def oracle_st(features:int=1, test_value:list=[[1]], gate:Instruction=RYGate):
+def oracle_st(features:int=1, test_value:list=[1], gate:Instruction=RYGate):
     """
     Build a Oracle using SWAP-Test.
 
@@ -154,9 +154,9 @@ def oracle_st(features:int=1, test_value:list=[[1]], gate:Instruction=RYGate):
 
 
 def qknn(
-        test_value:list=[[1],[1]],
+        test_value:list=[1],
         train_set:list=[[1],[1]],
-        size_QRAM:int=1,
+        size_QRAM:int=2,
         features:int=1,
         max_trials:int=1,
         rotation:str="ry"
@@ -230,15 +230,15 @@ class qknn_experiments():
     """
 
     def __init__(self,x_test:list=[[1]],
-                    x_train:list=[[1]],
-                    y_test:list=[[1]],
-                    y_train:list=[[1]],
+                    x_train:list=[[1],[1]],
+                    y_test:list=[1],
+                    y_train:list=[1,1],
                     features:int=1,
                     max_trials:int=1,
                     rotation:str="ry",
                     experiment_size:int=1,
-                   min_QRAM:int=3,
-                    max_QRAM:int=4):
+                   min_QRAM:int=1,
+                    max_QRAM:int=2):
         """
     Initialize the class
         Args:
@@ -302,7 +302,8 @@ class qknn_experiments():
                     index = 0
                     neighbors = {}
                     while index < k:
-                        if values[index][0] == "1":
+                        if values[index][0] == "1" and index <int(2**size):
+                            print(values)	
                             k_class = self.y_train[int(values[index][2:],2)]
                             if k_class in neighbors:
                                 neighbors[k_class] = neighbors[k_class]+1
@@ -336,7 +337,7 @@ class qknn_experiments():
         return self.acc_8,self.acc_16,self.acc_32,self.acc_64,self.acc_128
 
 
-    def draw_qknn(self,index:int=0,size:int=3):
+    def draw_qknn(self,index:int=0,size:int=2):
         """
     Print the qknn quantum circuit
     Args:
@@ -350,7 +351,7 @@ class qknn_experiments():
         return qknn(self.x_test[index], self.x_train,size,self.features,self.max_trials,self.rotation)
 
 
-    def mae_acc(self,acc:list):
+    def mae_acc(self,acc:list=[1]):
         """
     Obtain the MAE  from a lsit of accuracy values
     Args:
@@ -367,8 +368,11 @@ class qknn_experiments():
         summ = 0
         for i in range(n):
             summ += abs(mean - acc[i])
-        return mean,summ/n
-
+        if summ == 0:
+	        return mean,0
+        else:
+                return mean,summ/n
+	        
     def print_results(self):
         """
     Obtain the MAE values for different QRAM sizes: 8,16,32,64,128
@@ -394,3 +398,4 @@ class qknn_experiments():
 
             print(f'MAE of  QRAM of size {int(2**i)} cells of memory with {mean:.2f} +/- {error:.2f}.')
 
+        return None
