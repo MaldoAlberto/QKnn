@@ -10,7 +10,4 @@ We test multiple QRAM cell sizes (8, 16, 32, 64, 128), with ten trials per size,
 
 Alberto Maldonado-Romo, Jesus Yalja Montiel Perez, Victor Onofre, Javier Maldonado-Romo, Juan Humberto Sossa Azuela, and Gabriel N. Perdue
 
-## Notes
-
-To run the `coverage` check, you must also install the "coverage" module.
 
