@@ -15,3 +15,4 @@ seaborn>=0.13.2
 notebook>=6.4.8
 pylatexenc
 qiskit_aer
+tqdm
