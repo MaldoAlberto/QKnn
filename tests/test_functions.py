@@ -6,7 +6,7 @@ import unittest
 import sys
 import logging
 import qiskit
-from qknn.functions import index_positions,diffuser,oracle_st,qknn
+from qknn.functions import index_positions, diffuser, qram, oracle_st, qknn
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,30 +20,29 @@ class TestFunctions(unittest.TestCase): # pylint: disable=too-many-instance-attr
         self.assertTrue([2], index_positions(4))
         self.assertTrue([1, 4], index_positions(18))
         self.assertTrue([1, 2, 4], index_positions(22))
-        self.asserIs(list, index_positions(1))
-        
-        
+        self.assertIs(list, type(index_positions(1)))
+
+
     def test_diffuser(self):
         """Test `diffuser()`"""
         LOGGER.info(sys._getframe().f_code.co_name) # pylint: disable=protected-access
-        self.assertIs(qiskit.circuit.gate.Gate, diffuser(2))
-        
+        self.assertIs(qiskit.circuit.gate.Gate, type(diffuser(2)))
+
     def test_qram(self):
         """Test `qram()`"""
         LOGGER.info(sys._getframe().f_code.co_name) # pylint: disable=protected-access
-        self.assertIs(qiskit.circuit.quantumcircuit.QuantumCircuit, qram())
-        
+        self.assertIs(qiskit.circuit.quantumcircuit.QuantumCircuit, type(qram()))
+
     def test_oracle_st(self):
         """Test `oracle_st()`"""
         LOGGER.info(sys._getframe().f_code.co_name) # pylint: disable=protected-access
         self.assertIs(qiskit.circuit.quantumcircuit.QuantumCircuit, oracle_st())
-        
-        
+
     def test_qknn(self):
         """Test `qknn()`"""
         LOGGER.info(sys._getframe().f_code.co_name) # pylint: disable=protected-access
-        self.assertIs(qiskit.circuit.quantumcircuit.QuantumCircuit, qknn())
-        
+        self.assertIs(qiskit.circuit.quantumcircuit.QuantumCircuit, type(qknn()))
+
 
 if __name__ == '__main__':
     unittest.main()
