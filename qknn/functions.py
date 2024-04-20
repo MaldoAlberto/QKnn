@@ -230,15 +230,15 @@ class qknn_experiments():
     """
 
     def __init__(self,x_test:list=[[1]],
-                    x_train:list=[[1],[1]],
+                    x_train:list=[[1],[1],[1],[1],[1],[1],[1],[1]],
                     y_test:list=[1],
-                    y_train:list=[1,1],
+                    y_train:list=[1,1,1,1,1,1,1,1],
                     features:int=1,
                     max_trials:int=1,
                     rotation:str="ry",
                     experiment_size:int=1,
-                   min_QRAM:int=1,
-                    max_QRAM:int=2):
+                   min_QRAM:int=2,
+                    max_QRAM:int=3):
         """
     Initialize the class
         Args:
@@ -302,8 +302,12 @@ class qknn_experiments():
                     index = 0
                     neighbors = {}
                     while index < k:
-                        if values[index][0] == "1" and index <int(2**size):
-                            print(values)	
+                        if values == []:
+                            neighbors[0] = 1
+                            break
+                        
+                        
+                        if values[index][0] == "1":
                             k_class = self.y_train[int(values[index][2:],2)]
                             if k_class in neighbors:
                                 neighbors[k_class] = neighbors[k_class]+1

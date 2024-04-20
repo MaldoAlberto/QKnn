@@ -62,6 +62,11 @@ class TestFunctions(unittest.TestCase): # pylint: disable=too-many-instance-attr
         LOGGER.info(sys._getframe().f_code.co_name) # pylint: disable=protected-access
         self.assertIs(None, qknn_experiments().print_results())
         
+    def test_experiments_knn(self):
+        """Test `experiments_knn()`"""
+        LOGGER.info(sys._getframe().f_code.co_name) # pylint: disable=protected-access
+        self.assertIs(tuple, type(qknn_experiments().experiments_knn()))
+        
 
 if __name__ == '__main__':
     unittest.main()
