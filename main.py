@@ -24,7 +24,7 @@ def main():
     #initial conditions of the experiments of the qknn
     experiment_size = 10
     min_QRAM = 3
-    max_QRAM = 8
+    max_QRAM = 7
     features = len(x_train[0])
     
     for k in [1,3,5,7]:

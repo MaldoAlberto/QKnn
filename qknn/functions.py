@@ -230,15 +230,15 @@ class qknn_experiments():
     """
 
     def __init__(self,x_test:list=[[1]],
-                    x_train:list=[[1],[1],[1],[1],[1],[1],[1],[1]],
+                    x_train:list=[[1],[-1],[0],[0],[-1],[1],[1],[1]],
                     y_test:list=[1],
-                    y_train:list=[1,1,1,1,1,1,1,1],
+                    y_train:list=[1,0,2,2,0,1,1,1],
                     features:int=1,
                     max_trials:int=1,
                     rotation:str="ry",
                     experiment_size:int=1,
-                   min_QRAM:int=2,
-                    max_QRAM:int=3):
+                   min_QRAM:int=3,
+                    max_QRAM:int=4):
         """
     Initialize the class
         Args:
@@ -271,6 +271,9 @@ class qknn_experiments():
         self.acc_32 = []
         self.acc_64 = []
         self.acc_128 = []
+        
+        self.acc_11 = []
+
 
 
     def experiments_knn(self,k:int = 1,shots:int =10000):
@@ -282,11 +285,11 @@ class qknn_experiments():
         shots: integer vlaue for the number of shots i nthe Quantum Circuit
 
     Returns:
-        self.acc8: integer list of accuracies from a QRAM of size 8
-        self.acc16: integer list of accuracies from a QRAM of size 16
-        self.acc32: integer list of accuracies from a QRAM of size 32
-        self.acc64: integer list of accuracies from a QRAM of size 64
-        self.acc128: integer list of accuracies from a QRAM of size 128
+        self.acc_8: integer list of accuracies from a QRAM of size 8
+        self.acc_16: integer list of accuracies from a QRAM of size 16
+        self.acc_32: integer list of accuracies from a QRAM of size 32
+        self.acc_64: integer list of accuracies from a QRAM of size 64
+        self.acc_128: integer list of accuracies from a QRAM of size 128
     """
         for _ in range(self.experiment_size):
             for size in range(self.min_QRAM,self.max_QRAM):
@@ -306,13 +309,14 @@ class qknn_experiments():
                             neighbors[0] = 1
                             break
                         
-                        
-                        if values[index][0] == "1":
-                            k_class = self.y_train[int(values[index][2:],2)]
-                            if k_class in neighbors:
-                                neighbors[k_class] = neighbors[k_class]+1
+                        val_int = int(values[index][2:],2)
+                        if values[index][0] == "1" and val_int< self.size_test_set:
+
+                            k_clas = self.y_train[val_int]
+                            if k_clas in neighbors:
+                                neighbors[k_clas] = neighbors[k_clas]+1
                             else:
-                                neighbors[k_class] = 1
+                                neighbors[k_clas] = 1
                             index += 1
                         else:
                             del values[index]
@@ -340,7 +344,106 @@ class qknn_experiments():
 
         return self.acc_8,self.acc_16,self.acc_32,self.acc_64,self.acc_128
 
+    def experiments_multi_knn(self,k:list = [1,3],shots:int =10000):
+        """
+        Execute the Qknn for a specific k
+        Args:
+        value: is part of the class
+        k: integer value for the k nearlest neighbor
+        shots: integer value for the number of shots i nthe Quantum Circuit
 
+    Returns:
+        self.acc_8: integer list of accuracies from k = 1
+        self.acc_16: integer list of accuracies from k = 3
+        self.acc_32: integer list of accuracies from k = 5
+        self.acc_64: integer list of accuracies from k = 7
+        self.acc_128: integer list of accuracies from k = 9
+        self.acc_11: integer list of accuracies from k = 11
+    """
+        for _ in range(self.experiment_size):
+            k1 = []
+            k3 = []
+            k5 = []
+            k7 = []
+            k9 = []
+            k11 = []
+
+            for i in range(self.size_test_set):
+                qc = qknn(self.x_test[i], self.x_train,self.min_QRAM,self.features,self.max_trials,self.rotation)
+                result = AerSimulator().run(transpile(qc,basis_gates=["cx","rz","x","sx"],optimization_level=3), shots=shots).result()
+                counts = result.get_counts(qc)
+                counts = {a: v for a, v in sorted(counts.items(), key=lambda item: item[1],reverse=True)}
+
+                values = list(counts.keys())
+                index = 0
+                neighbors = {}
+                while index < k[-1]:
+                    val_int = int(values[index][2:],2)
+
+                    if values == []:
+                        neighbors[0] = 1
+                        break
+ 
+                    
+                    if values[index][0] == '1' and val_int< len(self.y_train):
+                         
+                        k_clas = self.y_train[val_int]
+                        if k_clas in neighbors:
+                            neighbors[k_clas] = neighbors[k_clas]+1
+                        else:   
+                            neighbors[k_clas] = 1
+                        if (index+1) in k and index == 0:    
+                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
+                            k1.append(next(iter(neighbors)))
+                            
+                        elif (index+1) in k and index == 2:
+                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
+                            k3.append(next(iter(neighbors)))
+                            
+                        elif (index+1) in k and index == 4:
+                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
+                            k5.append(next(iter(neighbors)))
+                            
+                        elif (index+1) in k and index == 6:
+                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
+                            k7.append(next(iter(neighbors)))
+                            
+                        elif (index+1) in k and index == 8:
+                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
+                            k9.append(next(iter(neighbors)))
+
+                        elif (index+1) in k and index == 10:
+                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
+                            k11.append(next(iter(neighbors)))
+                        
+                        index += 1
+                        
+                    else:
+                        del values[index]
+
+            if 1 in k:
+                #print(accuracy_score(self.y_test,k1)*100)
+                self.acc_8.append(accuracy_score(self.y_test,k1)*100)
+
+            if 3 in k:
+                self.acc_16.append(accuracy_score(self.y_test,k3)*100)
+
+            if 5 in k:
+                self.acc_32.append(accuracy_score(self.y_test,k5)*100)
+
+            if 7 in k:
+                self.acc_64.append(accuracy_score(self.y_test,k7)*100)
+
+            if 9 in k:
+                self.acc_128.append(accuracy_score(self.y_test,k9)*100)
+            
+            if 11 in k:
+                self.acc_11.append(accuracy_score(self.y_test,k11)*100)
+
+
+        return self.acc_8,self.acc_16,self.acc_32,self.acc_64,self.acc_128,self.acc_11
+        
+        
     def draw_qknn(self,index:int=0,size:int=2):
         """
     Print the qknn quantum circuit
@@ -367,6 +470,9 @@ class qknn_experiments():
         mean: float value that is the MAE accuracy
         error: float value that is the error from the MAE accuracy
         """
+        if acc == []:
+            return 0,0       
+        
         mean =  np.mean(np.asarray(acc))
         n = len(acc)
         summ = 0
@@ -379,13 +485,15 @@ class qknn_experiments():
 	        
     def print_results(self):
         """
-    Obtain the MAE values for different QRAM sizes: 8,16,32,64,128
+    Obtain the MAE values for different QRAM sizes: 8,16,32,64,128 
     Args:
         self: is part of the class
 
     Returns:
         print: the output from the MAE in different QRAM sizes: 8,16,32,64,128
+
         """
+
         print("The MAE value of each size is ")
         for i in range(self.min_QRAM,self.max_QRAM):
             mean,error = 0,0
@@ -401,5 +509,33 @@ class qknn_experiments():
                 mean,error  = self.mae_acc(self.acc_128)
 
             print(f'MAE of  QRAM of size {int(2**i)} cells of memory with {mean:.2f} +/- {error:.2f}.')
+            
+            
+    def print_results_multi_knn(self,knn:list=[1,3]):
+        """
+    Obtain the MAE values for different k values : 1,3,5,7,9,11 
+    Args:
+        self: is part of the class
 
-        return None
+    Returns:
+        print: the output from the MAE in different k values : 1,3,5,7,9,11
+
+        """
+        print("The MAE value of each k is ")
+        for i in knn:
+
+            mean,error = 0,0
+            if i == 1:
+                mean,error  = self.mae_acc(self.acc_8)
+            elif i == 3:
+                mean,error  = self.mae_acc(self.acc_16)
+            elif i == 5:
+                mean,error  = self.mae_acc(self.acc_32)
+            elif i == 7:
+                mean,error  = self.mae_acc(self.acc_64)
+            elif i == 9:
+                mean,error  = self.mae_acc(self.acc_128)
+            elif i == 11:
+                mean,error  = self.mae_acc(self.acc_11)
+            print(f'MAE of  QRAM of size {int(2**self.min_QRAM)} cells of memory and {i}-nn with  {mean:.2f} +/- {error:.2f}.')
+        return None        
