@@ -2,4 +2,6 @@ qknn/__pycache__
 tests/__pycache__
 log*txt
 .ipynb_checkpoints/*
+experiments/1nn/.ipynb_checkpoints/*
+experiments/knn/.ipynb_checkpoints/*
 .coverage
