@@ -3,8 +3,13 @@ Various functions needed to implement the Q-kNN.
 """
 import math
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+
 # import numpy for postprocessing to find the k-nn label
 import numpy as np
+from statistics import mode
+
+
 # import qiskit minimal methods to use quantum circuit and use qubits as the classical bits
 from qiskit import QuantumCircuit,QuantumRegister,ClassicalRegister, transpile
 from qiskit_aer import AerSimulator
@@ -177,7 +182,7 @@ def qknn(
         a particular test set instance with a sample or all the train set
     """
     n = 2**size_QRAM
-    n_grover_trials = math.ceil(math.sqrt(n))
+    n_grover_trials = int(math.ceil(math.sqrt(n)))
     if max_trials:
         n_grover_trials = min(max_trials, n_grover_trials)
 
@@ -229,42 +234,41 @@ class qknn_experiments():
     Class to use multiple knn experiments
     """
 
-    def __init__(self,x_test:list=[[1]],
-                    x_train:list=[[1],[-1],[0],[0],[-1],[1],[1],[1]],
-                    y_test:list=[1],
-                    y_train:list=[1,0,2,2,0,1,1,1],
+    def __init__(self,x_data:list=[[1],[1],[-1],[0],[0],[-1],[1],[1],[1]],
+                    y_data:list=[1,1,0,2,2,0,1,1,1],
                     features:int=1,
                     max_trials:int=1,
                     rotation:str="ry",
                     experiment_size:int=1,
-                   min_QRAM:int=3,
-                    max_QRAM:int=4):
+                    min_QRAM:int=3,
+                    max_QRAM:int=4,
+                    train_size:int=0.7,
+                    seed:list =[1,2,4,5,6,10,11,12,13,18]):
         """
     Initialize the class
         Args:
         self: is part of the class
-        x_test: list of list of float values that contain the test set
-        x_train: list of list of float values that contain the train set
-        y_test: list of integer values that contain the test labels
-        y_train: list of integer values that contain the train labels
+        x_data: list of list of float values that contain the dataset
+        y_data: list of integer values that contain the labels
         features: integer value that indicates the number of features to use in the QRAM
         max_trials: integer value that representates the number of iterations to use the quantum circuit follows the Grover's algorithm
         rotation: Quantum gate that indicates the rotation gate to use to encode
         experiment_size: integer value that indicates the number of experiments of each QRAM
         min_QRAM: integer value to implement the minimum QRAM
         max_QRAM: integer value to implement the maximum QRAM
+        train_size= flaot value of range [0,1] to divide the dataset to train and test set
+        seed = list of integer values to do the experiments
         """
-        self.x_test = x_test
-        self.x_train = x_train
-        self.y_test = y_test
-        self.y_train = y_train
+        self.x_data = x_data
+        self.y_data = y_data
         self.features = features
         self.max_trials = max_trials
         self.rotation = rotation
         self.experiment_size = experiment_size
         self.min_QRAM = min_QRAM
         self.max_QRAM = max_QRAM
-        self.size_test_set = len(self.y_test)
+        self.train_size = train_size
+        self.seed = seed
 
         self.acc_8 = []
         self.acc_16 = []
@@ -291,13 +295,25 @@ class qknn_experiments():
         self.acc_64: integer list of accuracies from a QRAM of size 64
         self.acc_128: integer list of accuracies from a QRAM of size 128
     """
-        for _ in range(self.experiment_size):
+    
+    
+        if 'GPU' in AerSimulator().available_devices():
+            sim = AerSimulator(device='GPU')
+        else:
+            sim = AerSimulator(device='CPU')
+        for s in range(self.experiment_size):
+            seed_simulator = self.seed[s]
+            x_train, x_test, y_train, y_test =train_test_split(self.x_data, self.y_data, train_size=self.train_size, random_state=seed_simulator)
+            size_test_set = len(y_test)
             for size in range(self.min_QRAM,self.max_QRAM):
                 y_pred = []
 
-                for i in range(self.size_test_set):
-                    qc = qknn(self.x_test[i], self.x_train,size,self.features,self.max_trials,self.rotation)
-                    result = AerSimulator().run(transpile(qc,basis_gates=["cx","rz","x","sx"],optimization_level=3), shots=shots).result()
+                for i in range(size_test_set):
+                    print(i)
+                    qc = qknn(x_test[i], x_train,size,self.features,self.max_trials,self.rotation)
+                    
+                    sim.set_options(seed_simulator=seed_simulator)
+                    result = sim.run(transpile(qc,basis_gates=["cx","rz","x","sx"],optimization_level=3), shots=shots).result()
                     counts = result.get_counts(qc)
                     counts = {a: v for a, v in sorted(counts.items(), key=lambda item: item[1],reverse=True)}
 
@@ -310,9 +326,10 @@ class qknn_experiments():
                             break
                         
                         val_int = int(values[index][2:],2)
-                        if values[index][0] == "1" and val_int< self.size_test_set:
+                        if values[index][0] == "1" and val_int< len(y_train):
+                            #print(values[index])
 
-                            k_clas = self.y_train[val_int]
+                            k_clas = y_train[val_int]
                             if k_clas in neighbors:
                                 neighbors[k_clas] = neighbors[k_clas]+1
                             else:
@@ -320,12 +337,15 @@ class qknn_experiments():
                             index += 1
                         else:
                             del values[index]
-
+                    
                     knn = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
+                    #print(knn)
                     y_pred.append(next(iter(knn)))
 
+                #print(self.y_test,y_pred)
 
-                acc_knn = accuracy_score(self.y_test,y_pred)*100
+                acc_knn = accuracy_score(y_test,y_pred)*100
+                print(acc_knn)
                 if size == 3:
                     self.acc_8.append(acc_knn)
 
@@ -359,8 +379,13 @@ class qknn_experiments():
         self.acc_64: integer list of accuracies from k = 7
         self.acc_128: integer list of accuracies from k = 9
         self.acc_11: integer list of accuracies from k = 11
-    """
-        for _ in range(self.experiment_size):
+    """ 
+        if 'GPU' in AerSimulator().available_devices():
+            sim = AerSimulator(device='GPU')
+        else:
+            sim = AerSimulator(device='CPU')
+        for s in range(self.experiment_size):
+            print(s)
             k1 = []
             k3 = []
             k5 = []
@@ -368,77 +393,58 @@ class qknn_experiments():
             k9 = []
             k11 = []
 
-            for i in range(self.size_test_set):
-                qc = qknn(self.x_test[i], self.x_train,self.min_QRAM,self.features,self.max_trials,self.rotation)
-                result = AerSimulator().run(transpile(qc,basis_gates=["cx","rz","x","sx"],optimization_level=3), shots=shots).result()
+            seed_simulator = self.seed[s]
+            x_train, x_test, y_train, y_test =train_test_split(self.x_data, self.y_data, train_size=self.train_size, random_state=seed_simulator)
+            size_test_set = len(y_test)
+
+            for i in range(size_test_set):
+                qc = qknn(x_test[i], x_train,self.min_QRAM,self.features,self.max_trials,self.rotation)
+                sim.set_options(seed_simulator=seed_simulator)
+                result = sim.run(transpile(qc,basis_gates=["cx","rz","x","sx"],optimization_level=3), shots=shots).result()
                 counts = result.get_counts(qc)
-                counts = {a: v for a, v in sorted(counts.items(), key=lambda item: item[1],reverse=True)}
+                counts = sorted(counts.items(), key=lambda item: item[1], reverse=True)
 
-                values = list(counts.keys())
+                list_ = []
                 index = 0
-                neighbors = {}
-                while index < k[-1]:
-                    val_int = int(values[index][2:],2)
+                nn = 0
+                while nn < k[len(k)-1]: 
+                    if counts[index][0][0] == '1' and int(counts[index][0][2:],2)< len(y_train):
+                        list_.append(y_train[int(counts[index][0][2:],2)])
+                        nn+=1
+                    index+=1
+                for k_ in k:
+                    if k_ == 1:
+                        k1.append(mode(list_[:k_]))
+                    elif k_==3:
+                        k3.append(mode(list_[:k_]))
+                    elif k_==5:
+                        k5.append(mode(list_[:k_]))
+                    elif k_==7:
+                        k7.append(mode(list_[:k_]))
+                    elif k_==9:
+                        k9.append(mode(list_[:k_]))
+                    elif k_==11:
+                        k11.append(mode(list_[:k_]))
 
-                    if values == []:
-                        neighbors[0] = 1
-                        break
- 
                     
-                    if values[index][0] == '1' and val_int< len(self.y_train):
-                         
-                        k_clas = self.y_train[val_int]
-                        if k_clas in neighbors:
-                            neighbors[k_clas] = neighbors[k_clas]+1
-                        else:   
-                            neighbors[k_clas] = 1
-                        if (index+1) in k and index == 0:    
-                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
-                            k1.append(next(iter(neighbors)))
-                            
-                        elif (index+1) in k and index == 2:
-                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
-                            k3.append(next(iter(neighbors)))
-                            
-                        elif (index+1) in k and index == 4:
-                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
-                            k5.append(next(iter(neighbors)))
-                            
-                        elif (index+1) in k and index == 6:
-                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
-                            k7.append(next(iter(neighbors)))
-                            
-                        elif (index+1) in k and index == 8:
-                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
-                            k9.append(next(iter(neighbors)))
-
-                        elif (index+1) in k and index == 10:
-                            neighbors = {a: v for a, v in sorted(neighbors.items(), key=lambda item: item[1],reverse=True)}
-                            k11.append(next(iter(neighbors)))
-                        
-                        index += 1
-                        
-                    else:
-                        del values[index]
-
             if 1 in k:
                 #print(accuracy_score(self.y_test,k1)*100)
-                self.acc_8.append(accuracy_score(self.y_test,k1)*100)
+                self.acc_8.append(accuracy_score(y_test,k1)*100)
 
             if 3 in k:
-                self.acc_16.append(accuracy_score(self.y_test,k3)*100)
+                self.acc_16.append(accuracy_score(y_test,k3)*100)
 
             if 5 in k:
-                self.acc_32.append(accuracy_score(self.y_test,k5)*100)
+                self.acc_32.append(accuracy_score(y_test,k5)*100)
 
             if 7 in k:
-                self.acc_64.append(accuracy_score(self.y_test,k7)*100)
+                self.acc_64.append(accuracy_score(y_test,k7)*100)
 
             if 9 in k:
-                self.acc_128.append(accuracy_score(self.y_test,k9)*100)
+                self.acc_128.append(accuracy_score(y_test,k9)*100)
             
             if 11 in k:
-                self.acc_11.append(accuracy_score(self.y_test,k11)*100)
+                self.acc_11.append(accuracy_score(y_test,k11)*100)
 
 
         return self.acc_8,self.acc_16,self.acc_32,self.acc_64,self.acc_128,self.acc_11
@@ -455,7 +461,8 @@ class qknn_experiments():
     Returns:
         qknn: the quantum circuit for a particular situation
         """
-        return qknn(self.x_test[index], self.x_train,size,self.features,self.max_trials,self.rotation)
+        x_train, x_test, y_train, y_test =train_test_split(self.x_data, self.y_data, train_size=self.train_size, random_state=self.seed[0])
+        return qknn(x_test[index], x_train,size,self.features,self.max_trials,self.rotation)
 
 
     def mae_acc(self,acc:list=[1]):
@@ -479,9 +486,9 @@ class qknn_experiments():
         for i in range(n):
             summ += abs(mean - acc[i])
         if summ == 0:
-	        return mean,0
+            return mean,0
         else:
-                return mean,summ/n
+            return mean,summ/n
 	        
     def print_results(self):
         """
@@ -511,7 +518,7 @@ class qknn_experiments():
             print(f'MAE of  QRAM of size {int(2**i)} cells of memory with {mean:.2f} +/- {error:.2f}.')
             
             
-    def print_results_multi_knn(self,knn:list=[1,3]):
+    def print_results_multi_knn(self,knn:list=[1,3,5,7,9,11]):
         """
     Obtain the MAE values for different k values : 1,3,5,7,9,11 
     Args:
@@ -539,3 +546,4 @@ class qknn_experiments():
                 mean,error  = self.mae_acc(self.acc_11)
             print(f'MAE of  QRAM of size {int(2**self.min_QRAM)} cells of memory and {i}-nn with  {mean:.2f} +/- {error:.2f}.')
         return None        
+
