@@ -8,6 +8,6 @@ We test multiple QRAM cell sizes (8, 16, 32, 64, 128), with ten trials per size,
 
 # Authors
 
-Alberto Maldonado-Romo, Jesus Yalja Montiel Perez, Victor Onofre, Javier Maldonado-Romo, Juan Humberto Sossa Azuela, and Gabriel N. Perdue
+Alberto Maldonado-Romo, Jesus Yalja Montiel Perez, Victor Onofre, Javier Maldonado-Romo, and Juan Humberto Sossa Azuela
 
 
